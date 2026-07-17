@@ -1,17 +1,14 @@
 // server.js
 
-require('dotenv').config({ path: '../.env' }); // Ensure dotenv is loaded
+require('dotenv').config(); // Load local .env from backend folder
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const tesseract = require('tesseract.js');
 const googleTTS = require('google-tts-api');
 
 // Initialize Express App
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Initialize Gemini for Vision
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // --- MIDDLEWARE SETUP ---
 app.use(cors());
@@ -28,25 +25,29 @@ app.post('/api/scan-prescription', async (req, res) => {
             return res.status(400).json({ error: "No image provided." });
         }
 
-        const visionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = "Extract the text from this medical prescription.";
-
-        const imagePart = {
-            inlineData: {
-                data: imageBase64.split(',')[1] || imageBase64,
-                mimeType: "image/jpeg"
-            }
-        };
-
-        console.log("-> Sending request to Gemini Vision API...");
-        const result = await visionModel.generateContent([prompt, imagePart]);
-        const text = result.response.text();
+        console.log("-> Starting offline Tesseract.js OCR scan...");
         
-        console.log("[PIPELINE SUCCESS] Text extracted from image.");
+        // Convert base64 back to buffer for Tesseract if needed, though it accepts base64 strings directly!
+        // But tesseract.js sometimes prefers a clean data URI or buffer. 
+        // We'll pass the base64 string directly as it usually accepts data URIs.
+        
+        let imgData = imageBase64;
+        if (!imageBase64.startsWith('data:image')) {
+            // If the frontend didn't pass the prefix (it usually does via FileReader)
+            imgData = `data:image/jpeg;base64,${imageBase64}`;
+        }
+
+        const worker = await tesseract.createWorker('eng');
+        const ret = await worker.recognize(imgData);
+        await worker.terminate();
+        
+        const text = ret.data.text;
+        
+        console.log("[PIPELINE SUCCESS] Text extracted from image offline.");
         res.json({ success: true, text: text });
     } catch (error) {
-        console.error("Vision API Error:", error);
-        res.status(500).json({ error: "Failed to extract text. Check API key and logs." });
+        console.error("Tesseract API Error:", error);
+        res.status(500).json({ error: "Failed to extract text offline. Try a clearer image." });
     }
 });
 
@@ -65,24 +66,29 @@ app.post('/api/generate-kissa', async (req, res) => {
         console.log(`-> Processing Text Report: "${reportText}"`);
         console.log(`-> Mode: ${mode}`);
         
-        const prompt = `You are an AI Medical Assistant for rural Kerala. Analyze the following medical text: ${reportText}
+        const prompt = `You are a professional yet empathetic medical assistant for rural Kerala.
+Take this medical text: "${reportText}".
 
-Assess if this is a CRITICAL EMERGENCY (e.g., severe bleeding, chest pain, difficulty breathing, stroke symptoms).
-If it is an emergency, output ONLY valid JSON matching this exact structure:
+1. FIRST, assess emergency status (is_emergency: boolean).
+2. IF NOT EMERGENCY: Create a Kissa (Radio Drama) between 'Asha Chechi' (Nurse) and 'Amma' (Patient).
+   - CONSTRAINT: Do NOT use overly complex or flowery metaphors. Keep it grounded and practical.
+   - PATIENT NO-QUESTIONS RULE: 'Amma' (the patient) MUST NOT ask any questions. She should only listen, agree, or express understanding. 'Asha Chechi' must proactively explain everything.
+   - You must explain the medical advice clearly. Use simple language that a village resident understands, but DO NOT lose the clinical meaning.
+   - Focus on: What to take, when to take it, and why it is important for their health.
+   - KEEP IT REAL: Talk like two people in a village, not like poets.
+   
+3. Output ONLY valid JSON.
+Structure:
 {
-  "is_emergency": true,
-  "alert": "🚨 EMERGENCY",
-  "emergency_instructions": "Direct Malayalam commands for life saving actions...",
+  "is_emergency": boolean,
+  "alert": "Clear 3-word warning in Malayalam",
+  "simple_guide": "A 2-sentence plain language summary of the medical advice in native Malayalam (മലയാളം)",
+  "emergency_instructions": "Direct Malayalam commands or null",
   "emergency_contact": "CALL_AMBULANCE_108",
-  "kissa_script": null
-}
-If it is NOT an emergency, output ONLY valid JSON matching this exact structure:
-{
-  "is_emergency": false,
-  "alert": "Health Advice",
-  "emergency_instructions": null,
-  "emergency_contact": null,
-  "kissa_script": [{"speaker": "Asha Chechi", "text": "..."}]
+  "kissa_script": [
+    {"speaker": "Asha Chechi", "text": "Practical Malayalam dialogue"},
+    {"speaker": "Amma", "text": "Practical Malayalam dialogue"}
+  ]
 }`;
 
         const ollamaPayload = {
@@ -118,6 +124,7 @@ If it is NOT an emergency, output ONLY valid JSON matching this exact structure:
                 data: {
                     is_emergency: dataObject.is_emergency,
                     alert: dataObject.alert || "Health Advice",
+                    simple_guide: dataObject.simple_guide || null,
                     emergency_instructions: dataObject.emergency_instructions || null,
                     emergency_contact: dataObject.emergency_contact || null,
                     kissa_script: dataObject.kissa_script || []
@@ -144,38 +151,16 @@ app.post('/api/tts', async (req, res) => {
             return res.status(400).json({ error: "No text provided for TTS." });
         }
         
-        if (!process.env.ELEVENLABS_API_KEY) {
-             return res.status(500).json({ error: "ELEVENLABS_API_KEY is not set in the environment." });
-        }
-
-        // Voice ID logic: 'slow' means it's Amma, else Asha Chechi
-        // Amma voice (older, softer): "pFZP5JQG7iQjIQuC4Bku" (Lily)
-        // Asha Chechi voice (professional): "EXAVITQu4vr4xnSDxMaL" (Rachel)
-        const voiceId = slow ? "pFZP5JQG7iQjIQuC4Bku" : "EXAVITQu4vr4xnSDxMaL";
-        
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-            method: 'POST',
-            headers: {
-                'xi-api-key': process.env.ELEVENLABS_API_KEY,
-                'Content-Type': 'application/json',
-                'Accept': 'audio/mpeg'
-            },
-            body: JSON.stringify({
-                text: text,
-                model_id: "eleven_multilingual_v2"
-            })
+        // Using google-tts-api (Google Translate's native Malayalam engine)
+        // This generally has a much better native accent for Malayalam than ElevenLabs V2
+        const results = await googleTTS.getAllAudioBase64(text, {
+            lang: 'ml',
+            slow: slow || false,
+            host: 'https://translate.google.com',
+            splitPunct: ',.?'
         });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("ElevenLabs API Error:", errText);
-            return res.status(500).json({ error: "ElevenLabs API failed." });
-        }
         
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        
-        res.json({ success: true, audioBase64Array: [base64] });
+        res.json({ success: true, audioBase64Array: results.map(r => r.base64) });
     } catch (error) {
         console.error("TTS API Error:", error);
         res.status(500).json({ error: "Failed to generate audio." });

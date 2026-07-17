@@ -6,6 +6,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
+  
+  // Interactive Tab State
+  const [activeTab, setActiveTab] = useState('health_story');
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -76,6 +80,7 @@ function App() {
   };
 
   const playAudioArray = async (base64Array) => {
+    setIsPlaying(true);
     for (const b64 of base64Array) {
       await new Promise((resolve) => {
         const audio = new Audio('data:audio/mp3;base64,' + b64);
@@ -83,6 +88,7 @@ function App() {
         audio.play();
       });
     }
+    setIsPlaying(false);
   };
 
   const fetchAndPlay = async (text, slow) => {
@@ -98,144 +104,117 @@ function App() {
       }
     } catch (error) {
       console.error("TTS Error:", error);
+      setIsPlaying(false);
     }
   };
 
   const playAudio = async () => {
     if (!result) return;
-
+    
     if (result.is_emergency && result.emergency_instructions) {
       await fetchAndPlay(result.emergency_instructions, false);
     } else if (!result.is_emergency && Array.isArray(result.kissa_script) && result.kissa_script.length > 0) {
       for (let i = 0; i < result.kissa_script.length; i++) {
         const line = result.kissa_script[i];
         const textToSpeak = line?.text || (typeof line === 'string' ? line : 'Audio unreadable');
-        const speakerName = line?.speaker || '';
-        // Differentiate voices by making the non-Asha speaker talk slightly slower
-        const isAsha = speakerName.toLowerCase().includes("asha");
-        await fetchAndPlay(textToSpeak, !isAsha);
+        const isAmma = (line?.speaker || '').toLowerCase().includes('amma');
+        await fetchAndPlay(textToSpeak, isAmma);
       }
     }
   };
 
-  // --- COMPONENT STYLES ---
   const styles = {
-    toggleBtn: (isActive) => ({
+    toggleBtn: (active) => ({
       flex: 1,
       padding: '12px',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      border: `2px solid ${isActive ? '#1b4332' : '#e0e0e0'}`,
+      border: 'none',
       borderRadius: '8px',
-      backgroundColor: isActive ? '#1b4332' : '#ffffff',
-      color: isActive ? '#ffffff' : '#333',
       cursor: 'pointer',
-      transition: 'all 0.2s',
-      textAlign: 'center'
+      fontWeight: 'bold',
+      fontSize: '16px',
+      backgroundColor: active ? '#2d6a4f' : '#e0e0e0',
+      color: active ? 'white' : '#555',
+      transition: 'all 0.3s'
     }),
-    card: {
-      padding: '24px',
-      borderRadius: '12px',
-      backgroundColor: '#f4fbf7',
-      border: '1px solid #c8e6d9',
-      textAlign: 'left'
-    }
+    tabButton: (id) => ({
+      border: 'none',
+      padding: '20px',
+      borderRadius: '16px',
+      textAlign: 'left',
+      background: 'transparent'
+    })
   };
 
+  const tabs = [
+    { id: 'simple_guide', icon: '📖', title: 'Simple Guide', desc: 'Get plain language explanations.' },
+    { id: 'health_story', icon: '🎭', title: 'Health Story', desc: 'Translate diagnoses into Kissa dramas.' },
+    { id: 'voice', icon: '🗣️', title: 'Voice Player', desc: 'Listen to native audio guidance.' },
+    { id: 'translation', icon: '🌍', title: 'Translation', desc: 'View raw Malayalam translations.' }
+  ];
+
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', color: '#333' }}>
-      
-      {/* Navbar */}
-      <nav style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', borderBottom: '1px solid #eaeaea' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1b4332', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>🌿</span> HealthStory AI
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Premium Navbar */}
+      <nav className="glass-panel" style={{ padding: '15px 40px', display: 'flex', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#1b4332', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-0.5px' }}>
+            <span style={{ fontSize: '28px' }}>🌿</span> HealthStory AI
           </div>
-          <a href="#" style={{ color: '#0000EE', textDecoration: 'underline', fontSize: '16px' }}>Home</a>
-          <a href="#" style={{ color: '#0000EE', textDecoration: 'underline', fontSize: '16px' }}>About</a>
         </div>
       </nav>
 
       {/* Main Content Container */}
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '60px 20px', textAlign: 'center', width: '100%' }}>
         
         {/* Hero Section */}
-        <h1 style={{ fontSize: '48px', color: '#1b4332', marginBottom: '20px', fontWeight: '800', lineHeight: '1.2' }}>
+        <h1 className="fade-in-up" style={{ fontSize: '56px', color: '#1b4332', marginBottom: '20px', fontWeight: '900', lineHeight: '1.1', letterSpacing: '-1px' }}>
           Health Guidance,<br/>Simplified with AI
         </h1>
-        <p style={{ fontSize: '18px', color: '#555', marginBottom: '40px', maxWidth: '700px', margin: '0 auto', lineHeight: '1.6' }}>
+        <p className="fade-in-up" style={{ fontSize: '20px', color: '#4a5568', marginBottom: '50px', maxWidth: '700px', margin: '0 auto 50px auto', lineHeight: '1.6', animationDelay: '0.1s' }}>
           Upload prescriptions, medical notices or health guidance and transform them into easy explanations, health stories, voice narration and local languages.
         </p>
 
-        {/* 4 Feature Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '60px' }}>
-          <div style={styles.card}>
-            <div style={{ fontSize: '24px', marginBottom: '10px' }}>📖</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332', marginBottom: '8px' }}>Simple Guide</h3>
-            <p style={{ fontSize: '14px', color: '#555' }}>Get plain language explanations of complex medical terms.</p>
-          </div>
-          <div style={styles.card}>
-            <div style={{ fontSize: '24px', marginBottom: '10px' }}>🎭</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332', marginBottom: '8px' }}>Health Story</h3>
-            <p style={{ fontSize: '14px', color: '#555' }}>Translate diagnoses into culturally relevant radio dramas (Kissa).</p>
-          </div>
-          <div style={styles.card}>
-            <div style={{ fontSize: '24px', marginBottom: '10px' }}>🗣️</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332', marginBottom: '8px' }}>Voice</h3>
-            <p style={{ fontSize: '14px', color: '#555' }}>Listen to your health guidance narrated by local voices.</p>
-          </div>
-          <div style={styles.card}>
-            <div style={{ fontSize: '24px', marginBottom: '10px' }}>🌍</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332', marginBottom: '8px' }}>Translation</h3>
-            <p style={{ fontSize: '14px', color: '#555' }}>Automatically translate guidelines into native local scripts.</p>
-          </div>
+        {/* Interactive Feature Tabs */}
+        <div className="fade-in-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '60px', animationDelay: '0.2s' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`glass-card interactive-tab ${activeTab === tab.id ? 'active' : ''}`}
+              style={styles.tabButton(tab.id)}
+            >
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>{tab.icon}</div>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1b4332', marginBottom: '8px' }}>{tab.title}</h3>
+              <p style={{ fontSize: '14px', color: '#4a5568', lineHeight: '1.5' }}>{tab.desc}</p>
+            </button>
+          ))}
         </div>
 
         {/* Input Section Workspace */}
-        <div style={{ textAlign: 'left', maxWidth: '800px', margin: '0 auto', padding: '30px', border: '1px solid #eaeaea', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px', color: '#1b4332' }}>
+        <div className="glass-panel fade-in-up" style={{ textAlign: 'left', maxWidth: '800px', margin: '0 auto', padding: '40px', borderRadius: '24px', animationDelay: '0.3s' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '24px', color: '#1b4332' }}>
             Offline Triage Workspace
           </h2>
 
-          {/* Mode Toggle */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <button 
-              style={styles.toggleBtn(mode === 'prescription')}
-              onClick={() => setMode('prescription')}
-            >
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '24px' }}>
+            <button style={styles.toggleBtn(mode === 'prescription')} onClick={() => setMode('prescription')}>
               📋 Prescription Mode
             </button>
-            <button 
-              style={styles.toggleBtn(mode === 'notice')}
-              onClick={() => setMode('notice')}
-            >
+            <button style={styles.toggleBtn(mode === 'notice')} onClick={() => setMode('notice')}>
               📢 Public Notice Mode
             </button>
           </div>
 
-          {/* Real Scanner Button */}
           {mode === 'prescription' && (
-            <div style={{ marginBottom: '20px' }}>
-              <input 
-                type="file" 
-                accept="image/*" 
-                ref={fileInputRef} 
-                style={{ display: 'none' }} 
-                onChange={handleFileUpload} 
-              />
+            <div style={{ marginBottom: '24px' }}>
+              <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
               <button 
                 onClick={() => fileInputRef.current.click()}
                 disabled={scanning}
                 style={{
-                  width: '100%',
-                  padding: '16px',
-                  backgroundColor: '#f8f9fa',
-                  border: '2px dashed #999',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  color: '#333',
-                  cursor: scanning ? 'not-allowed' : 'pointer'
+                  width: '100%', padding: '20px', backgroundColor: 'rgba(255,255,255,0.8)', border: '2px dashed #9ca3af',
+                  borderRadius: '16px', fontSize: '18px', fontWeight: '700', color: '#4b5563', cursor: scanning ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s'
                 }}
               >
                 {scanning ? "⏳ Scanning... Please Wait" : "📷 Scan Handwritten Prescription"}
@@ -243,25 +222,11 @@ function App() {
             </div>
           )}
 
-          {mode === 'notice' && (
-            <div style={{ marginBottom: '20px', fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
-              * Enter public health guidance below to generate a local radio drama.
-            </div>
-          )}
-
           <textarea 
             style={{
-              width: '100%',
-              minHeight: '150px',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid #e0e0e0',
-              fontSize: '16px',
-              marginBottom: '20px',
-              resize: 'vertical',
-              fontFamily: 'monospace',
-              backgroundColor: '#fefefe',
-              color: '#333'
+              width: '100%', minHeight: '150px', padding: '20px', borderRadius: '16px', border: '1px solid #d1d5db',
+              fontSize: '16px', marginBottom: '24px', resize: 'vertical', fontFamily: 'monospace',
+              backgroundColor: 'rgba(255,255,255,0.9)', color: '#1f2937', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
             }}
             placeholder="Medical text will appear here..."
             value={inputText}
@@ -271,145 +236,154 @@ function App() {
 
           <button 
             style={{
-              padding: '16px 24px',
-              backgroundColor: '#3b8256',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              cursor: (loading || scanning) ? 'not-allowed' : 'pointer',
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px',
+              padding: '18px 24px', backgroundColor: '#1b4332', color: 'white', border: 'none', borderRadius: '16px',
+              fontSize: '18px', fontWeight: '800', cursor: (loading || scanning) ? 'not-allowed' : 'pointer',
+              width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px',
+              boxShadow: '0 10px 25px rgba(27, 67, 50, 0.3)', transition: 'all 0.3s',
               opacity: (loading || scanning) ? 0.7 : 1
             }}
             onClick={handleGenerate}
             disabled={loading || scanning}
           >
-            <span>✨</span> {loading ? "Generating via Ollama (Offline)..." : "Generate with Gemma 4 E2B"}
+            <span style={{ fontSize: '22px' }}>✨</span> {loading ? "Analyzing via Ollama..." : "Generate AI Output"}
           </button>
         </div>
 
-        {/* Dynamic Results Section */}
+        {/* Dynamic Results Section powered by Active Tab */}
         {result && (
-          <div style={{ 
-            marginTop: '40px',
-            maxWidth: '800px', 
-            margin: '40px auto 0 auto',
-            padding: '30px', 
-            borderRadius: '16px', 
-            border: `3px ${result.is_emergency ? 'dashed #c0392b' : 'solid #2d6a4f'}`,
-            backgroundColor: result.is_emergency ? '#fff5f5' : '#ffffff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          <div className="fade-in-up" style={{ 
+            marginTop: '40px', maxWidth: '800px', margin: '40px auto 100px auto',
+            padding: '40px', borderRadius: '24px', 
+            border: result.is_emergency ? 'none' : '1px solid rgba(255,255,255,0.6)',
+            backgroundColor: result.is_emergency ? '#fff5f5' : 'rgba(255,255,255,0.7)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: result.is_emergency ? '0 0 0 rgba(192, 57, 43, 0.4)' : '0 20px 40px rgba(0,0,0,0.08)',
             textAlign: 'left',
-            animation: result.is_emergency ? 'pulse 2s infinite' : 'none'
+            animation: result.is_emergency ? 'pulse-emergency 2s infinite' : 'none'
           }}>
-            <style>
-              {`
-                @keyframes pulse {
-                  0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.4); }
-                  70% { box-shadow: 0 0 0 15px rgba(192, 57, 43, 0); }
-                  100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
-                }
-              `}
-            </style>
-
-            <div style={{ 
-              color: result.is_emergency ? '#c0392b' : '#2d6a4f', 
-              fontSize: '24px', 
-              fontWeight: '900', 
-              marginBottom: '20px',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
-              {result.is_emergency ? `🚨 CRITICAL EMERGENCY: ${result.alert}` : `✅ HEALTH ALERT: ${result.alert}`}
-            </div>
-
-            <button 
-              onClick={playAudio}
-              style={{
-                width: '100%',
-                padding: '16px',
-                backgroundColor: result.is_emergency ? '#c0392b' : '#2d6a4f',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                marginBottom: '30px',
-                fontWeight: 'bold',
-                fontSize: '18px'
-              }}
-            >
-              {result.is_emergency ? '⚠️ Play Emergency Audio' : '🔊 Play Audio Drama'}
-            </button>
-
+            
+            {/* EMERGENCY OVERRIDE - If it's an emergency, we lock the view to this critical alert */}
             {result.is_emergency ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ 
-                  fontSize: '28px', 
-                  color: '#c0392b', 
-                  fontWeight: 'bold', 
-                  lineHeight: '1.4',
-                  textAlign: 'center',
-                  padding: '20px',
-                  backgroundColor: '#fdf2f0',
-                  borderRadius: '8px'
-                }}>
+                <div style={{ color: '#c0392b', fontSize: '28px', fontWeight: '900', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '2px' }}>
+                  🚨 CRITICAL EMERGENCY
+                </div>
+                <div style={{ fontSize: '20px', color: '#c0392b', fontWeight: 'bold', textAlign: 'center' }}>
+                  {result.alert}
+                </div>
+                <div style={{ fontSize: '26px', color: '#c0392b', fontWeight: 'bold', lineHeight: '1.5', textAlign: 'center', padding: '30px', backgroundColor: '#fdf2f0', borderRadius: '16px' }}>
                   {result.emergency_instructions}
                 </div>
-                
-                <div style={{ marginTop: '20px' }}>
-                  <a href="tel:108" style={{
-                    display: 'block',
-                    textAlign: 'center',
-                    padding: '20px',
-                    backgroundColor: '#d00000',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '50px',
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    boxShadow: '0 4px 15px rgba(208, 0, 0, 0.3)'
-                  }}>
+                <button onClick={playAudio} style={{ padding: '20px', backgroundColor: '#c0392b', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '20px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                  {isPlaying ? '🔊 Playing Audio...' : '⚠️ Play Emergency Audio'}
+                </button>
+                <div style={{ marginTop: '10px' }}>
+                  <a href="tel:108" style={{ display: 'block', textAlign: 'center', padding: '24px', backgroundColor: '#d00000', color: 'white', textDecoration: 'none', borderRadius: '50px', fontSize: '24px', fontWeight: '900', boxShadow: '0 10px 30px rgba(208, 0, 0, 0.4)' }}>
                     📞 CALL AMBULANCE (108)
                   </a>
                 </div>
-
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', backgroundColor: '#f0f2f5', padding: '20px', borderRadius: '12px' }}>
-                {Array.isArray(result.kissa_script) ? result.kissa_script.map((line, index) => {
-                  const speakerName = line?.speaker || 'Speaker';
-                  const isAsha = speakerName.toLowerCase().includes('asha') || speakerName.toLowerCase().includes('nurse');
-                  const text = line?.text || (typeof line === 'string' ? line : JSON.stringify(line));
-                  return (
-                    <div key={index} style={{
-                      padding: '12px 16px',
-                      backgroundColor: isAsha ? '#dcf8c6' : '#ffffff',
-                      borderRadius: '12px',
-                      maxWidth: '80%',
-                      alignSelf: isAsha ? 'flex-start' : 'flex-end',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                      borderTopLeftRadius: isAsha ? '0' : '12px',
-                      borderTopRightRadius: !isAsha ? '0' : '12px'
-                    }}>
-                      <div style={{ fontSize: '11px', fontWeight: 'bold', color: isAsha ? '#128C7E' : '#075E54', marginBottom: '4px', textTransform: 'uppercase' }}>
-                        {speakerName}
-                      </div>
-                      <div style={{ fontSize: '16px', color: '#303030', lineHeight: '1.4' }}>
-                        {text}
-                      </div>
+              /* TAB VIEWS FOR NON-EMERGENCY */
+              <>
+                {/* 1. SIMPLE GUIDE TAB */}
+                {activeTab === 'simple_guide' && (
+                  <div>
+                    <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      📖 Simple Guide Summary
+                    </h3>
+                    <div style={{ padding: '24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                      <p style={{ fontSize: '18px', color: '#4a5568', marginBottom: '15px' }}><strong>Status:</strong> Not a critical emergency.</p>
+                      <p style={{ fontSize: '18px', color: '#4a5568', marginBottom: '15px' }}><strong>Main Alert:</strong> {result.alert}</p>
+                      <p style={{ fontSize: '18px', color: '#4a5568', marginBottom: '15px' }}><strong>Summary:</strong> <span style={{ color: '#1b4332', fontWeight: 'bold' }}>{result.simple_guide || 'No summary available.'}</span></p>
+                      <p style={{ fontSize: '14px', color: '#9ca3af' }}><strong>Original Scan:</strong> <span style={{ fontStyle: 'italic' }}>{inputText}</span></p>
                     </div>
-                  );
-                }) : (
-                  <div style={{ padding: '16px', backgroundColor: '#ffffff', borderRadius: '12px', fontSize: '16px', color: '#333' }}>
-                    {typeof result.kissa_script === 'string' ? result.kissa_script : JSON.stringify(result.kissa_script)}
                   </div>
                 )}
-              </div>
+
+                {/* 2. HEALTH STORY TAB */}
+                {activeTab === 'health_story' && (
+                  <div>
+                    <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      🎭 Health Story (Kissa)
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', backgroundColor: '#f0f2f5', padding: '24px', borderRadius: '16px' }}>
+                      {Array.isArray(result.kissa_script) ? result.kissa_script.map((line, index) => {
+                        const speakerName = line?.speaker || 'Speaker';
+                        const isAsha = speakerName.toLowerCase().includes('asha') || speakerName.toLowerCase().includes('nurse');
+                        const text = line?.text || (typeof line === 'string' ? line : JSON.stringify(line));
+                        return (
+                          <div key={index} style={{
+                            padding: '16px 20px', backgroundColor: isAsha ? '#dcf8c6' : '#ffffff',
+                            borderRadius: '16px', maxWidth: '85%', alignSelf: isAsha ? 'flex-start' : 'flex-end',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                            borderTopLeftRadius: isAsha ? '0' : '16px', borderTopRightRadius: !isAsha ? '0' : '16px'
+                          }}>
+                            <div style={{ fontSize: '12px', fontWeight: '800', color: isAsha ? '#128C7E' : '#075E54', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              {speakerName}
+                            </div>
+                            <div style={{ fontSize: '18px', color: '#111', lineHeight: '1.5' }}>{text}</div>
+                          </div>
+                        );
+                      }) : (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No Kissa script found in output.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. VOICE TAB */}
+                {activeTab === 'voice' && (
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                     <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '40px' }}>
+                      🗣️ Voice Narration
+                    </h3>
+                    <button 
+                      onClick={playAudio}
+                      disabled={isPlaying}
+                      style={{
+                        padding: '24px 40px', backgroundColor: '#2d6a4f', color: 'white', border: 'none', borderRadius: '50px',
+                        fontSize: '20px', fontWeight: '800', cursor: isPlaying ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 10px 30px rgba(45, 106, 79, 0.3)', transition: 'all 0.3s',
+                        display: 'inline-flex', alignItems: 'center', gap: '15px'
+                      }}
+                    >
+                      {isPlaying ? (
+                        <>
+                          <div className="playing-waveform">
+                            <span></span><span></span><span></span><span></span><span></span>
+                          </div>
+                          Playing Narration...
+                        </>
+                      ) : (
+                        <>🔊 Play Health Story Audio</>
+                      )}
+                    </button>
+                    <p style={{ marginTop: '30px', color: '#666', fontSize: '16px' }}>Powered by Native Google TTS Engine</p>
+                  </div>
+                )}
+
+                {/* 4. TRANSLATION TAB */}
+                {activeTab === 'translation' && (
+                  <div>
+                     <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      🌍 Native Translation
+                    </h3>
+                    <div style={{ padding: '24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                      <p style={{ fontSize: '16px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '5px' }}>Original Context</p>
+                      <p style={{ fontSize: '18px', color: '#4a5568', marginBottom: '25px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>{inputText}</p>
+                      
+                      <p style={{ fontSize: '16px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '5px' }}>Malayalam Output</p>
+                      <div style={{ fontSize: '20px', color: '#1f2937', lineHeight: '1.6', padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', borderLeft: '4px solid #2d6a4f' }}>
+                         {Array.isArray(result.kissa_script) ? result.kissa_script.map((line, i) => (
+                           <div key={i} style={{ marginBottom: '10px' }}>{line.text}</div>
+                         )) : result.alert}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </>
             )}
           </div>
         )}

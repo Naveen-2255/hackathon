@@ -3,7 +3,7 @@
 require('dotenv').config(); // Load local .env from backend folder
 const express = require('express');
 const cors = require('cors');
-const tesseract = require('tesseract.js');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const googleTTS = require('google-tts-api');
 
 // Initialize Express App
@@ -13,6 +13,12 @@ const PORT = process.env.PORT || 5000;
 // --- MIDDLEWARE SETUP ---
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); 
+
+// Initialize Google Gemini API
+if (!process.env.GEMINI_API_KEY) {
+    console.warn("⚠️ WARNING: GEMINI_API_KEY is not set in backend/.env!");
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // --------------------------------------------
 // === ROUTE 0: IMAGE SCANNER (CLOUD VISION) ===
@@ -25,29 +31,41 @@ app.post('/api/scan-prescription', async (req, res) => {
             return res.status(400).json({ error: "No image provided." });
         }
 
-        console.log("-> Starting offline Tesseract.js OCR scan...");
+        console.log("-> Sending request to Gemini Vision API...");
         
-        // Convert base64 back to buffer for Tesseract if needed, though it accepts base64 strings directly!
-        // But tesseract.js sometimes prefers a clean data URI or buffer. 
-        // We'll pass the base64 string directly as it usually accepts data URIs.
+        let rawBase64 = imageBase64;
+        let mimeType = "image/jpeg"; // default
         
-        let imgData = imageBase64;
-        if (!imageBase64.startsWith('data:image')) {
-            // If the frontend didn't pass the prefix (it usually does via FileReader)
-            imgData = `data:image/jpeg;base64,${imageBase64}`;
+        // Strip data URI prefix if present
+        if (imageBase64.startsWith('data:image')) {
+            const matches = imageBase64.match(/^data:(image\/[a-zA-Z]*);base64,([^\"]*)$/);
+            if (matches) {
+                mimeType = matches[1];
+                rawBase64 = matches[2];
+            }
         }
-
-        const worker = await tesseract.createWorker('eng');
-        const ret = await worker.recognize(imgData);
-        await worker.terminate();
         
-        const text = ret.data.text;
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = "Please extract all text from this medical prescription or notice. Return ONLY the extracted text. If it is illegible, return whatever you can decipher.";
         
-        console.log("[PIPELINE SUCCESS] Text extracted from image offline.");
+        const imageParts = [
+            {
+                inlineData: {
+                    data: rawBase64,
+                    mimeType
+                }
+            }
+        ];
+        
+        const result = await model.generateContent([prompt, ...imageParts]);
+        const response = await result.response;
+        const text = response.text();
+        
+        console.log("[PIPELINE SUCCESS] Text extracted successfully from Gemini Vision.");
         res.json({ success: true, text: text });
     } catch (error) {
-        console.error("Tesseract API Error:", error);
-        res.status(500).json({ error: "Failed to extract text offline. Try a clearer image." });
+        console.error("Gemini Vision API Error:", error);
+        res.status(500).json({ error: "Failed to read image via Gemini Vision. Please check your API key." });
     }
 });
 
@@ -151,8 +169,6 @@ app.post('/api/tts', async (req, res) => {
             return res.status(400).json({ error: "No text provided for TTS." });
         }
         
-        // Using google-tts-api (Google Translate's native Malayalam engine)
-        // This generally has a much better native accent for Malayalam than ElevenLabs V2
         const results = await googleTTS.getAllAudioBase64(text, {
             lang: 'ml',
             slow: slow || false,

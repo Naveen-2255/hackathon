@@ -111,6 +111,10 @@ function App() {
   const playAudio = async () => {
     if (!result) return;
     
+
+
+    setIsPlaying(true);
+    
     if (result.is_emergency && result.emergency_instructions) {
       await fetchAndPlay(result.emergency_instructions, false);
     } else if (!result.is_emergency && Array.isArray(result.kissa_script) && result.kissa_script.length > 0) {
@@ -121,6 +125,8 @@ function App() {
         await fetchAndPlay(textToSpeak, isAmma);
       }
     }
+    
+    setIsPlaying(false);
   };
 
   const styles = {
@@ -132,7 +138,7 @@ function App() {
       cursor: 'pointer',
       fontWeight: 'bold',
       fontSize: '16px',
-      backgroundColor: active ? '#2d6a4f' : '#e0e0e0',
+      backgroundColor: active ? '#2e8b57' : '#e0e0e0',
       color: active ? 'white' : '#555',
       transition: 'all 0.3s'
     }),
@@ -140,16 +146,15 @@ function App() {
       border: 'none',
       padding: '20px',
       borderRadius: '16px',
-      textAlign: 'left',
-      background: 'transparent'
+      textAlign: 'left'
     })
   };
 
   const tabs = [
-    { id: 'simple_guide', icon: '📖', title: 'Simple Guide', desc: 'Get plain language explanations.' },
-    { id: 'health_story', icon: '🎭', title: 'Health Story', desc: 'Translate diagnoses into Kissa dramas.' },
-    { id: 'voice', icon: '🗣️', title: 'Voice Player', desc: 'Listen to native audio guidance.' },
-    { id: 'translation', icon: '🌍', title: 'Translation', desc: 'View raw Malayalam translations.' }
+    { id: 'simple_guide', title: 'Simple Guide', desc: 'Get plain language explanations.' },
+    { id: 'health_story', title: 'Health Story', desc: 'Translate diagnoses into Kissa dramas.' },
+    { id: 'voice', title: 'Voice Player', desc: 'Listen to native audio guidance.' },
+    { id: 'translation', title: 'Translation', desc: 'View raw Malayalam translations.' }
   ];
 
   return (
@@ -158,7 +163,7 @@ function App() {
       <nav className="glass-panel" style={{ padding: '15px 40px', display: 'flex', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
           <div style={{ fontSize: '24px', fontWeight: '900', color: '#1b4332', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-0.5px' }}>
-            <span style={{ fontSize: '28px' }}>🌿</span> HealthStory AI
+            HealthStory AI
           </div>
         </div>
       </nav>
@@ -167,8 +172,8 @@ function App() {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '60px 20px', textAlign: 'center', width: '100%' }}>
         
         {/* Hero Section */}
-        <h1 className="fade-in-up" style={{ fontSize: '56px', color: '#1b4332', marginBottom: '20px', fontWeight: '900', lineHeight: '1.1', letterSpacing: '-1px' }}>
-          Health Guidance,<br/>Simplified with AI
+        <h1 className="fade-in-up" style={{ fontSize: '64px', color: '#1b4332', marginBottom: '20px', fontWeight: '900', lineHeight: '1.1', letterSpacing: '-1px' }}>
+          HealthStory AI
         </h1>
         <p className="fade-in-up" style={{ fontSize: '20px', color: '#4a5568', marginBottom: '50px', maxWidth: '700px', margin: '0 auto 50px auto', lineHeight: '1.6', animationDelay: '0.1s' }}>
           Upload prescriptions, medical notices or health guidance and transform them into easy explanations, health stories, voice narration and local languages.
@@ -183,7 +188,7 @@ function App() {
               className={`glass-card interactive-tab ${activeTab === tab.id ? 'active' : ''}`}
               style={styles.tabButton(tab.id)}
             >
-              <div style={{ fontSize: '28px', marginBottom: '12px' }}>{tab.icon}</div>
+
               <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1b4332', marginBottom: '8px' }}>{tab.title}</h3>
               <p style={{ fontSize: '14px', color: '#4a5568', lineHeight: '1.5' }}>{tab.desc}</p>
             </button>
@@ -198,10 +203,10 @@ function App() {
 
           <div style={{ display: 'flex', gap: '15px', marginBottom: '24px' }}>
             <button style={styles.toggleBtn(mode === 'prescription')} onClick={() => setMode('prescription')}>
-              📋 Prescription Mode
+              Prescription Mode
             </button>
             <button style={styles.toggleBtn(mode === 'notice')} onClick={() => setMode('notice')}>
-              📢 Public Notice Mode
+              Public Notice Mode
             </button>
           </div>
 
@@ -217,7 +222,7 @@ function App() {
                   transition: 'all 0.3s'
                 }}
               >
-                {scanning ? "⏳ Scanning... Please Wait" : "📷 Scan Handwritten Prescription"}
+                {scanning ? "Scanning... Please Wait" : "Scan Handwritten Prescription"}
               </button>
             </div>
           )}
@@ -245,7 +250,7 @@ function App() {
             onClick={handleGenerate}
             disabled={loading || scanning}
           >
-            <span style={{ fontSize: '22px' }}>✨</span> {loading ? "Analyzing via Ollama..." : "Generate AI Output"}
+            {loading ? "Analyzing via Ollama..." : "Generate AI Output"}
           </button>
         </div>
 
@@ -266,7 +271,7 @@ function App() {
             {result.is_emergency ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ color: '#c0392b', fontSize: '28px', fontWeight: '900', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '2px' }}>
-                  🚨 CRITICAL EMERGENCY
+                  CRITICAL EMERGENCY
                 </div>
                 <div style={{ fontSize: '20px', color: '#c0392b', fontWeight: 'bold', textAlign: 'center' }}>
                   {result.alert}
@@ -275,11 +280,11 @@ function App() {
                   {result.emergency_instructions}
                 </div>
                 <button onClick={playAudio} style={{ padding: '20px', backgroundColor: '#c0392b', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '20px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-                  {isPlaying ? '🔊 Playing Audio...' : '⚠️ Play Emergency Audio'}
+                  {isPlaying ? 'Playing Audio...' : 'Play Emergency Audio'}
                 </button>
                 <div style={{ marginTop: '10px' }}>
                   <a href="tel:108" style={{ display: 'block', textAlign: 'center', padding: '24px', backgroundColor: '#d00000', color: 'white', textDecoration: 'none', borderRadius: '50px', fontSize: '24px', fontWeight: '900', boxShadow: '0 10px 30px rgba(208, 0, 0, 0.4)' }}>
-                    📞 CALL AMBULANCE (108)
+                    CALL AMBULANCE (108)
                   </a>
                 </div>
               </div>
@@ -290,7 +295,7 @@ function App() {
                 {activeTab === 'simple_guide' && (
                   <div>
                     <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      📖 Simple Guide Summary
+                      Simple Guide Summary
                     </h3>
                     <div style={{ padding: '24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <p style={{ fontSize: '18px', color: '#4a5568', marginBottom: '15px' }}><strong>Status:</strong> Not a critical emergency.</p>
@@ -305,7 +310,7 @@ function App() {
                 {activeTab === 'health_story' && (
                   <div>
                     <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      🎭 Health Story (Kissa)
+                      Health Story (Kissa)
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', backgroundColor: '#f0f2f5', padding: '24px', borderRadius: '16px' }}>
                       {Array.isArray(result.kissa_script) ? result.kissa_script.map((line, index) => {
@@ -336,7 +341,7 @@ function App() {
                 {activeTab === 'voice' && (
                   <div style={{ textAlign: 'center', padding: '40px 0' }}>
                      <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '40px' }}>
-                      🗣️ Voice Narration
+                      Voice Narration
                     </h3>
                     <button 
                       onClick={playAudio}
@@ -356,7 +361,7 @@ function App() {
                           Playing Narration...
                         </>
                       ) : (
-                        <>🔊 Play Health Story Audio</>
+                        <>Play Health Story Audio</>
                       )}
                     </button>
                     <p style={{ marginTop: '30px', color: '#666', fontSize: '16px' }}>Powered by Native Google TTS Engine</p>
@@ -367,7 +372,7 @@ function App() {
                 {activeTab === 'translation' && (
                   <div>
                      <h3 style={{ fontSize: '24px', color: '#1b4332', fontWeight: '800', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      🌍 Native Translation
+                      Native Translation
                     </h3>
                     <div style={{ padding: '24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <p style={{ fontSize: '16px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '5px' }}>Original Context</p>
@@ -388,6 +393,19 @@ function App() {
           </div>
         )}
       </div>
+      
+      {/* About Section Footer */}
+      <footer style={{ padding: '40px 20px 80px 20px', marginTop: 'auto' }}>
+        <div className="glass-panel fade-in-up" style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center', padding: '50px', borderRadius: '24px', animationDelay: '0.4s' }}>
+          <h2 style={{ fontSize: '32px', color: '#1b4332', fontWeight: '900', marginBottom: '20px' }}>About HealthStory AI</h2>
+          <p style={{ fontSize: '18px', color: '#4a5568', lineHeight: '1.6', maxWidth: '800px', margin: '0 auto', marginBottom: '30px' }}>
+            HealthStory AI is a privacy-first edge architecture designed to bridge the healthcare literacy and accessibility gap in rural India. By running powerful lightweight medical AI (Google's Gemma 4) and offline text-scanning locally on edge devices, we guarantee patient data privacy while transforming complex medical prescriptions into easy-to-understand native Malayalam cultural radio dramas (Kissas).
+          </p>
+          <div style={{ fontSize: '14px', color: '#9ca3af', fontWeight: 'bold' }}>
+            Built for maximum privacy. Driven by accessibility.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

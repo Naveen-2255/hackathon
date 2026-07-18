@@ -16,8 +16,8 @@
 body {
   margin: 0;
   padding: 0;
-  /* Beautiful soft mesh gradient */
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* Beautiful soft light green mesh gradient */
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
   background-attachment: fixed;
   color: #2c3e50;
   min-height: 100vh;
@@ -34,26 +34,22 @@ input, textarea, button {
 
 /* Glassmorphism utilities */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.05);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .glass-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 24px 0 rgba(31, 38, 135, 0.1);
-  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
 }
 
 .interactive-tab {
@@ -71,7 +67,7 @@ input, textarea, button {
 .interactive-tab.active {
   opacity: 1;
   transform: scale(1.02);
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   border-color: #2d6a4f;
   border-width: 2px;
   box-shadow: 0 10px 30px rgba(45, 106, 79, 0.15);

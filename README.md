@@ -40,7 +40,7 @@ in proofs image.png
 Please see the `/screenshots` folder for UI demonstrations of the Emergency Mode, Kissa Story Generation, and Audio Player.
 
 ## Demo Video
-in proofs folder
+in proofs folder & https://drive.google.com/drive/folders/1ykEdXlYcB1OLPzVb0HjXY46YYZRcgzfn?usp=sharing
 
 ## Installation Steps
 Follow these steps to run the project locally on your machine.
